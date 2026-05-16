@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Alimentar Motor</title>
+
+</head>
+
+<body>
+
+    <h1>Configura tus gustos</h1>
+
+    <select id="generos">
+
+        <option value="">
+            Selecciona un género
+        </option>
+
+    </select>
+
+    <button onclick="cargarLibros()">
+        Buscar libros
+    </button>
+
+    <hr>
+
+    <div id="libros"></div>
+
+    <br>
+
+    <button onclick="terminarOnboarding()">
+        Finalizar configuración
+    </button>
+
+
+
+    <script>
+
+        const usuario = JSON.parse(
+            localStorage.getItem("usuario")
+        );
+
+
+
+        // =========================
+        // CARGAR GENEROS
+        // =========================
+
+        async function cargarGeneros() {
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/genres"
+                );
+
+                const data = await response.json();
+
+                const select =
+                    document.getElementById("generos");
+
+
+                data.generos.forEach(g => {
+
+                    const option =
+                        document.createElement("option");
+
+                    option.value = g.genero;
+
+                    option.textContent = g.genero;
+
+                    select.appendChild(option);
+
+                });
+
+            } catch (error) {
+
+                console.log(error);
+
+            }
+        }
+
+
+
+        // =========================
+        // CARGAR LIBROS
+        // =========================
+
+        async function cargarLibros() {
+
+            const genero =
+                document.getElementById("generos").value;
+
+            if (!genero) {
+
+                alert("Selecciona un género");
+
+                return;
+            }
+
+            try {
+
+                const response = await fetch(
+
+                    `http://127.0.0.1:8000/onboarding/books/${genero}`
+
+                );
+
+                const data = await response.json();
+
+                const contenedor =
+                    document.getElementById("libros");
+
+                contenedor.innerHTML = "";
+
+
+                data.libros.forEach(libro => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.innerHTML = `
+
+                        <h3>${libro.titulo}</h3>
+
+                        <p>${libro.autor}</p>
+
+                        <button onclick="calificarLibro(${libro.id_libro}, 1)">
+                            1
+                        </button>
+
+                        <button onclick="calificarLibro(${libro.id_libro}, 2)">
+                            2
+                        </button>
+
+                        <button onclick="calificarLibro(${libro.id_libro}, 3)">
+                            3
+                        </button>
+
+                        <button onclick="calificarLibro(${libro.id_libro}, 4)">
+                            4
+                        </button>
+
+                        <button onclick="calificarLibro(${libro.id_libro}, 5)">
+                            5
+                        </button>
+
+                        <hr>
+
+                    `;
+
+                    contenedor.appendChild(div);
+
+                });
+
+            } catch (error) {
+
+                console.log(error);
+
+            }
+        }
+
+
+
+        // =========================
+        // GUARDAR CALIFICACION
+        // =========================
+
+        async function calificarLibro(
+            idLibro,
+            calificacion
+        ) {
+
+            try {
+
+                const response = await fetch(
+
+                    "http://127.0.0.1:8000/ratings",
+
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            id_usuario:
+                                usuario.id_usuario,
+
+                            id_libro:
+                                idLibro,
+
+                            calificacion:
+                                calificacion
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                console.log(data);
+
+                alert("Calificación guardada");
+
+            } catch (error) {
+
+                console.log(error);
+
+            }
+        }
+
+
+
+        // =========================
+        // FINALIZAR ONBOARDING
+        // =========================
+
+        async function terminarOnboarding() {
+
+            try {
+
+                await fetch(
+
+                    "http://127.0.0.1:8000/finish-onboarding",
+
+                    {
+                        method: "PUT",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            id_usuario:
+                                usuario.id_usuario
+                        })
+                    }
+                );
+
+                alert("Perfil configurado");
+
+                window.location.href =
+                    "usuario.html";
+
+            } catch (error) {
+
+                console.log(error);
+
+            }
+        }
+
+
+
+        // =========================
+        // INICIAR
+        // =========================
+
+        cargarGeneros();
+
+    </script>
+
+</body>
+
+</html>

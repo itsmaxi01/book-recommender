@@ -58,13 +58,27 @@ formulario.addEventListener('submit', function(evento) {
 
     if (data.success) {
 
+        localStorage.setItem(
+            "usuario",
+            JSON.stringify(data.usuario)
+        );
+
         if (data.usuario.tipo == 1) {
 
             window.location.href = "admin.html";
 
         } else {
 
-            window.location.href = "usuario.html";
+            if (data.usuario.primer_ingreso == 1) {
+
+                window.location.href =
+                    "alimentar_motor.html";
+
+            } else {
+
+                window.location.href =
+                    "usuario.html";
+            }
         }
 
     } else {

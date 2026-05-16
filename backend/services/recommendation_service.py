@@ -1,75 +1,91 @@
-from backend.database.connection import conectar
+from database.connection import conectar
 
-
-def alimentar_motor_usuario(id_usuario):
+def obtener_generos():
 
     db = conectar()
     cursor = db.cursor(dictionary=True)
 
-    print("\n--- ¡VAMOS A CONFIGURAR TU PERFIL! ---")
-
-    cursor.execute("SELECT DISTINCT genero FROM libros")
-
-    generos = [row['genero'] for row in cursor.fetchall()]
-
-    print("\nGéneros disponibles:")
-
-    for i, g in enumerate(generos, 1):
-        print(f"{i}. {g}")
-
-    try:
-        seleccion = int(input("\nSelecciona el número de tu género favorito: "))
-        genero_elegido = generos[seleccion - 1]
-
-    except (ValueError, IndexError):
-        genero_elegido = "General"
-
-    print(f"\nMostrando libros de {genero_elegido}:")
-
     cursor.execute(
-        "SELECT id_libro, titulo, autor FROM libros WHERE genero = %s ORDER BY RAND() LIMIT 5",
-        (genero_elegido,)
+        "SELECT DISTINCT genero FROM libros"
     )
 
-    libros_a_calificar = cursor.fetchall()
+    generos = cursor.fetchall()
 
-    if not libros_a_calificar:
-        print("No hay libros suficientes.")
-        return
+    db.close()
 
-    for libro in libros_a_calificar:
+    return generos
 
-        while True:
 
-            try:
-                calif = int(input(
-                    f"¿Qué puntuación le das a '{libro['titulo']}'? (1-5): "
-                ))
+def obtener_libros_genero(genero):
 
-                if 1 <= calif <= 5:
+    db = conectar()
+    cursor = db.cursor(dictionary=True)
 
-                    cursor.execute(
-                        "INSERT INTO puntuacion (id_usuario, id_libro, calificacion) VALUES (%s, %s, %s)",
-                        (id_usuario, libro['id_libro'], calif)
-                    )
+    query = """
+        SELECT id_libro, titulo, autor
+        FROM libros
+        WHERE genero = %s
+        ORDER BY RAND()
+        LIMIT 5
+    """
 
-                    break
+    cursor.execute(query, (genero,))
 
-                else:
-                    print("Del 1 al 5.")
+    libros = cursor.fetchall()
 
-            except ValueError:
-                print("Número inválido.")
+    db.close()
+
+    return libros
+
+
+def guardar_calificacion(
+    id_usuario,
+    id_libro,
+    calificacion
+):
+
+    db = conectar()
+    cursor = db.cursor()
+
+    query = """
+        INSERT INTO puntuacion
+        (id_usuario, id_libro, calificacion)
+        VALUES (%s, %s, %s)
+    """
 
     cursor.execute(
-        "UPDATE usuarios SET primer_ingreso = 0 WHERE id_usuario = %s",
-        (id_usuario,)
+        query,
+        (id_usuario, id_libro, calificacion)
     )
 
     db.commit()
     db.close()
 
-    print("\n¡Perfil configurado!")
+    return {
+        "success": True
+    }
+
+
+def finalizar_primer_ingreso(id_usuario):
+
+    db = conectar()
+    cursor = db.cursor()
+
+    query = """
+        UPDATE usuarios
+        SET primer_ingreso = 0
+        WHERE id_usuario = %s
+    """
+
+    cursor.execute(query, (id_usuario,))
+
+    db.commit()
+    db.close()
+
+    return {
+        "success": True
+    }
+
 
 
 def mostrar_recomendaciones(id_usuario):
@@ -172,69 +188,6 @@ def mostrar_recomendaciones(id_usuario):
         cursor.execute(query_fill, (id_usuario,))
         libros_finales.extend(cursor.fetchall())
 
-    print("\n" + "=" * 50)
-    print("   TUS RECOMENDACIONES PERSONALIZADAS ")
-    print("=" * 50)
-
-    if not libros_finales:
-        print(" ¡Vaya! No encontramos libros nuevos para recomendarte.")
-
-    else:
-
-        for i, l in enumerate(libros_finales, 1):
-
-            if mejores_generos and i <= 3 and l['genero'] == mejores_generos[0]['genero']:
-                tag = " [Recomendado]"
-            elif i == 5:
-                tag = " [Nuevo]"
-            else:
-                tag = " [Podría gustarte]"
-
-            print(f"{i}. {tag} {l['titulo']} - {l['autor']} | {l['genero']} (ID: {l['id_libro']})")
-
-    print("\n" + "-" * 50)
-
-    opcion = input("¿Quieres calificar alguno de estos libros ahora? (s/n): ")
-
-    if opcion.lower() == 's':
-
-        try:
-            num = int(input("Ingresa el número de la lista (1-5): "))
-
-            if 1 <= num <= len(libros_finales):
-
-                libro_sel = libros_finales[num - 1]
-
-                calif = int(input(
-                    f"¿Qué calificación le das a '{libro_sel['titulo']}'? (1-5): "
-                ))
-
-                if 1 <= calif <= 5:
-
-                    sql_ins = """
-                        INSERT INTO puntuacion
-                        (id_usuario, id_libro, calificacion)
-                        VALUES (%s, %s, %s)
-                    """
-
-                    cursor.execute(
-                        sql_ins,
-                        (id_usuario, libro_sel['id_libro'], calif)
-                    )
-
-                    db.commit()
-
-                    print(
-                        f"¡Guardado! Tu opinión sobre '{libro_sel['titulo']}' nos ayuda a mejorar."
-                    )
-
-                else:
-                    print("Debe ser entre 1 y 5.")
-
-            else:
-                print("Selección fuera de rango.")
-
-        except ValueError:
-            print("Por favor, usa números.")
-
     db.close()
+
+    return libros_finales
