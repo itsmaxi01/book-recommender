@@ -1,4 +1,4 @@
-# main.py actualizado
+# app.py actualizado
 
 import mysql.connector
 import requests

@@ -1,4 +1,4 @@
-from backend.database.connection import conectar
+from database.connection import conectar
 import requests
 import random
 
@@ -51,3 +51,22 @@ def importar_desde_api():
 
     except Exception as e:
         print(f" Error en la API: {e}")
+
+
+def obtener_libros():
+
+    db = conectar()
+
+    cursor = db.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT id_libro, titulo, autor, genero
+        FROM libros
+        LIMIT 20
+    """)
+
+    libros = cursor.fetchall()
+
+    db.close()
+
+    return libros
